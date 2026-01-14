@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "expo_ai_chat_app",
-    "slug": "expo_ai_chat_app",
+    "name": "Niffler",
+    "slug": "niffler",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

@@ -23,7 +23,7 @@ const STORAGE_KEY = '@antigravity_messages';
 const INITIAL_MESSAGES: Message[] = [
     {
         id: '1',
-        text: 'System online. Antigravity Agent initialized. Neural core ready for interaction.',
+        text: 'System online. Niffler Agent initialized. Ready to dig for answers.',
         sender: 'agent',
         timestamp: Date.now(),
     },
@@ -44,9 +44,9 @@ export const ChatScreen: React.FC = () => {
                         setIsInitialized(true);
                     }}
                 >
-                    <Text style={styles.initButtonText}>INITIALIZE NEURAL CORE</Text>
+                    <Text style={styles.initButtonText}>INITIALIZE NIFFLER CORE</Text>
                 </TouchableOpacity>
-                <Text style={styles.versionText}>ANTIGRAVITY v2.0 READY</Text>
+                <Text style={styles.versionText}>NIFFLER AI READY</Text>
             </View>
         );
     }
@@ -77,7 +77,15 @@ const ChatInterior: React.FC = () => {
                 if (AsyncStorage) {
                     const saved = await AsyncStorage.getItem(STORAGE_KEY);
                     if (saved) {
-                        setMessages(JSON.parse(saved));
+                        const parsedMessages = JSON.parse(saved);
+                        // QUICK MIGRATION: Check if old Antigravity text exists
+                        if (parsedMessages.length > 0 && parsedMessages[0].text.includes("Antigravity Agent initialized")) {
+                            console.log("Migrating legacy chat history...");
+                            setMessages(INITIAL_MESSAGES);
+                            // Force overwrite next save
+                            return;
+                        }
+                        setMessages(parsedMessages);
                         return;
                     }
                 }
@@ -166,6 +174,45 @@ const ChatInterior: React.FC = () => {
         }
     };
 
+    const handleRegenerate = async () => {
+        if (isProcessing || messages.length < 2) return;
+
+        try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch (e) { }
+
+        // Find last user message
+        const lastAgentIndex = messages.length - 1;
+        const lastUserIndex = messages.length - 2;
+
+        if (messages[lastAgentIndex].sender !== 'agent' || messages[lastUserIndex].sender !== 'user') return;
+
+        const userText = messages[lastUserIndex].text;
+        const newHistory = messages.slice(0, lastUserIndex); // Remove last user and agent msg from history sent to model
+        // Wait, runInference takes (text, history). 
+        // If we want to regenerate the response to 'userText', the history passed should be everything BEFORE 'userText'.
+
+        // Update UI to show Thinking
+        setMessages(prev => {
+            const next = [...prev];
+            next[lastAgentIndex] = {
+                ...next[lastAgentIndex],
+                text: '...',
+                timestamp: Date.now()
+            };
+            return next;
+        });
+
+        try {
+            // We pass newHistory (messages before the last user prompt) logic is handled by runInference appending the prompt
+            await runInference(userText, newHistory);
+        } catch (error) {
+            setMessages(prev => {
+                const next = [...prev];
+                next[lastAgentIndex].text = "Error regenerating response.";
+                return next;
+            });
+        }
+    };
+
     const handleVoice = async () => {
         if (isProcessing) return;
         try { await Haptics.selectionAsync(); } catch (e) { }
@@ -178,7 +225,7 @@ const ChatInterior: React.FC = () => {
         setIsListening(true);
         setTimeout(() => {
             setIsListening(false);
-            handleSend("Summarize recent neural architecture breakthroughs.");
+            handleSend("Tell me about the hidden treasures of knowledge.");
         }, 3000);
     };
 
@@ -207,10 +254,16 @@ const ChatInterior: React.FC = () => {
                 ref={flatListRef}
                 data={messages}
                 keyExtractor={item => item.id}
-                renderItem={({ item }) => <ChatBubble message={item} />}
+                renderItem={({ item, index }) => (
+                    <ChatBubble
+                        message={item}
+                        isLast={index === messages.length - 1}
+                        onRegenerate={index === messages.length - 1 && item.sender === 'agent' ? handleRegenerate : undefined}
+                    />
+                )}
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
-                onContentSizeChange={scrollToBottom}
+                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
             />
 
             <PerformanceHUD inferenceSpeed={inferenceTime} />

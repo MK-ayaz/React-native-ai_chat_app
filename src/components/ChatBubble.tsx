@@ -7,13 +7,36 @@ import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
 import { Colors, Gaps } from '../theme/colors';
 import { Message } from '../types';
-import { Share2, Copy } from 'lucide-react-native';
+import { Share2, Copy, RefreshCw } from 'lucide-react-native';
 
 interface ChatBubbleProps {
     message: Message;
+    onRegenerate?: () => void;
+    isLast?: boolean;
 }
 
-export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
+// Custom Code Block Renderer
+const CodeBlock = ({ content }: { content: string }) => {
+    const handleCopyCode = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        await Clipboard.setStringAsync(content);
+    };
+
+    return (
+        <View style={styles.codeBlockContainer}>
+            <View style={styles.codeBlockHeader}>
+                <Text style={styles.codeBlockLang}>CODE</Text>
+                <TouchableOpacity onPress={handleCopyCode} style={styles.copyButton}>
+                    <Copy size={12} color={Colors.textDim} />
+                    <Text style={styles.copyText}>COPY</Text>
+                </TouchableOpacity>
+            </View>
+            <Text style={styles.codeBlockContent}>{content.replace(/\n$/, '')}</Text>
+        </View>
+    );
+};
+
+export const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onRegenerate, isLast }) => {
     const isUser = message.sender === 'user';
 
     const handleCopy = async () => {
@@ -59,13 +82,12 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
             fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
         },
         code_block: {
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            color: Colors.primary,
-            padding: Gaps.md,
-            borderRadius: 12,
+            backgroundColor: 'transparent',
+            padding: 0,
+            borderRadius: 0,
             marginVertical: Gaps.sm,
-            borderWidth: 1,
-            borderColor: 'rgba(0, 240, 255, 0.2)',
+            borderWidth: 0,
+            borderColor: 'transparent',
             fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
         },
         link: {
@@ -94,12 +116,27 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
                 {!isUser && (
                     <BlurView intensity={15} tint="dark" style={StyleSheet.absoluteFill} />
                 )}
-                <Markdown style={markdownStyles}>
+                <Markdown
+                    style={markdownStyles}
+                    rules={{
+                        fence: (node, children, parent, styles) => (
+                            <CodeBlock key={node.key} content={node.content} />
+                        ),
+                        code_block: (node, children, parent, styles) => (
+                            <CodeBlock key={node.key} content={node.content} />
+                        ),
+                    }}
+                >
                     {message.text}
                 </Markdown>
 
                 {!isUser && message.text !== '...' && (
                     <View style={styles.bubbleActions}>
+                        {isLast && onRegenerate && (
+                            <TouchableOpacity onPress={onRegenerate} style={styles.actionIcon}>
+                                <RefreshCw size={14} color={Colors.textDim} />
+                            </TouchableOpacity>
+                        )}
                         <TouchableOpacity onPress={handleCopy} style={styles.actionIcon}>
                             <Copy size={14} color={Colors.textDim} />
                         </TouchableOpacity>
@@ -164,4 +201,42 @@ const styles = StyleSheet.create({
         marginTop: 4,
         letterSpacing: 1,
     },
+    codeBlockContainer: {
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        marginVertical: 8,
+        overflow: 'hidden',
+    },
+    codeBlockHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    codeBlockLang: {
+        color: Colors.textDim,
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
+    copyButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    copyText: {
+        color: Colors.textDim,
+        fontSize: 10,
+        marginLeft: 4,
+    },
+    codeBlockContent: {
+        color: '#e0e0e0',
+        fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+        fontSize: 12,
+        padding: 12,
+    }
 });

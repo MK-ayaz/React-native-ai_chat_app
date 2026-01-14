@@ -15,6 +15,7 @@ interface StatusHeaderProps {
 export const StatusHeader: React.FC<StatusHeaderProps> = ({ state, downloadProgress, onClear }) => {
     const getStatusText = () => {
         if (downloadProgress !== undefined && downloadProgress < 100) {
+            if (downloadProgress <= 0) return 'Initializing Core...';
             return `Downloading Core: ${Math.round(downloadProgress)}%`;
         }
         switch (state) {
@@ -31,7 +32,7 @@ export const StatusHeader: React.FC<StatusHeaderProps> = ({ state, downloadProgr
                     <View style={styles.left}>
                         <GravityCore state={state} />
                         <View style={styles.textContainer}>
-                            <Text style={styles.title}>ANTIGRAVITY v2.0</Text>
+                            <Text style={styles.title}>NIFFLER AI</Text>
                             <Text style={[
                                 styles.status,
                                 { color: state === 'error' ? Colors.error : Colors.textSecondary }

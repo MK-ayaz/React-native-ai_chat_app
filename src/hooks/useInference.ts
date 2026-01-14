@@ -6,10 +6,11 @@ const MODEL_URL = 'https://huggingface.co/software-mansion/react-native-executor
 const TOKENIZER_URL = 'https://huggingface.co/software-mansion/react-native-executorch-llama-3.2/resolve/main/tokenizer.json';
 const CONFIG_URL = 'https://huggingface.co/software-mansion/react-native-executorch-llama-3.2/resolve/main/tokenizer_config.json';
 
-const SYSTEM_PROMPT = `You are the ANTIGRAVITY Agent, a high-performance local AI assistant. 
-Your personality is minimalist, efficient, and slightly futuristic. 
-You provide detailed technical answers and maintain a professional tone. 
-Respond concisely unless asked for depth.`;
+const SYSTEM_PROMPT = `You are Niffler, a helpful, witty, and accurate AI assistant.
+Your goal is to provide precise and concise answers.
+1. Be direct and to the point.
+2. If you don't know something, admit it.
+3. Keep responses conversational but professional.`;
 
 export const useInference = () => {
     const [inferenceTime, setInferenceTime] = useState(0);
@@ -43,7 +44,7 @@ export const useInference = () => {
                 { role: 'user' as 'user', content: text }
             ];
 
-            const result = await generate(context);
+            const result = await generate(context, { temperature: 0.6, max_new_tokens: 512 } as any);
 
             const end = Date.now();
             const duration = end - start;
