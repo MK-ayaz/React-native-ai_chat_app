@@ -43,9 +43,3 @@ The app is configured to download `Llama 3.2 1B` from HuggingFace.
 - [ ] Vision Model Support
 - [ ] RAG (Retrieval Augmented Generation)
 
-## Troubleshooting
-**"Maximum update depth exceeded"**:
-This typically happens if the chat list updates too frequently. We use an optimized `FlatList` with `inverted={true}` to handle streaming efficiently.
-
-## License
-MIT
